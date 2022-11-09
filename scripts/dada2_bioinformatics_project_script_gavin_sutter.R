@@ -1,15 +1,20 @@
+#Bioinformtics Research Project R Script
+#Gavin Sutter and Anothony Kieffaber
+
 #installation using biocmanager
 #double check the most current version of dada2 and update version = ""
-if (!requireNamespace("BiocManager", quietly = TRUE))
-  install.packages("BiocManager")
-BiocManager::install("dada2", version = "3.11")
+#if (!requireNamespace("BiocManager", quietly = TRUE))
+  #install.packages("BiocManager")
+#BiocManager::install("dada2", version = "3.11")
 
-#### Getting Set  Up ####
+#loading packages
 library(dada2); packageVersion("dada2") #loads the dada2 package into R session
+library(ggplot2)
+library(phyloseq)
+library(ggfortify)
 
-#sample data
-#install fastq sample data from http://www.mothur.org/w/images/d/d6/MiSeqSOPData.zip
-# CHANGE ME to the directory containing the fastq files after unzipping.
+
+#data import - after forward and reverse reads have been demultiplexed with cutadpt
 path <- "/Users/gav/Library/CloudStorage/GoogleDrive-gavin.sutter0@gmail.com/My Drive/2022/HSU/Fall 2022/Bioinformatics/Bioinformatics_DADA2_Pipeline/working_dir2/data" 
 list.files(path)
 
