@@ -144,6 +144,7 @@ ps
 
 #Example of plotting alpha diversity using the Shannon and Simpson Alpha Diversity metrics
 plot_richness(ps, x="Organism", measures=c("Shannon", "Simpson"), color = "Spider") #curious why there isn't any singletons in this data set, phyloseq shows a warning that this is highly suspicious given the data. 
+ggsave("shannon_simpson_div_by_sample.tiff", path = "/Users/gav/Library/CloudStorage/GoogleDrive-gavin.sutter0@gmail.com/My Drive/2022/HSU/Fall 2022/Bioinformatics/Research_Project/working_dir/scripts/Outputs")
 
 #Ordinate
 ps.prop <- transform_sample_counts(ps, function(otu) otu/sum(otu))
@@ -151,13 +152,15 @@ ord.nmds.bray <- ordinate(ps.prop, method="NMDS", distance="bray")
 
 #Plotting Ordination
 plot_ordination(ps.prop, ord.nmds.bray, color="Spider", title="Bray NMDS")
-#clear separation between the early and late samples
+ggsave("ord_by_spider.tiff", path = "/Users/gav/Library/CloudStorage/GoogleDrive-gavin.sutter0@gmail.com/My Drive/2022/HSU/Fall 2022/Bioinformatics/Research_Project/working_dir/scripts/Outputs")
+
 
 #plotting abundances in a bar chart by sample (filtered by the top 20 taxa in each sample)
 top20 <- names(sort(taxa_sums(ps), decreasing=TRUE))[1:20]
 ps.top20 <- transform_sample_counts(ps, function(OTU) OTU/sum(OTU))
 ps.top20 <- prune_taxa(top20, ps.top20)
-plot_bar(ps.top20, x="Spider", fill="Family") #+ facet_wrap(~When, scales="free_x")
+plot_bar(ps.top20, x="Organism", fill="Family") #+ facet_wrap(~When, scales="free_x")
+ggsave("taxa_sample_family.tiff", path = "/Users/gav/Library/CloudStorage/GoogleDrive-gavin.sutter0@gmail.com/My Drive/2022/HSU/Fall 2022/Bioinformatics/Research_Project/working_dir/scripts/Outputs")
 
 #calculating shannon diversity for each sample in datatable - needs work
 #samples_shannon =  diversity("Genus", index = "shannon", exp = FALSE) 
