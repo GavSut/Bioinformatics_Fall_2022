@@ -32,6 +32,7 @@ sample.names <- sapply(strsplit(basename(fnFs), "_"), `[`, 1)
 #### Inspect Read Qulaity Profiles ####
 plotQualityProfile(fnFs[1:2]) #helps identify where to trim reads due to lack of quality at end of reads
 #plotQualityProfile(fnRs[1:2]) #reverse read quality analysis
+ggsave("quality_scores_forward_reads.jpeg", dpi = 300, path = "/Users/gav/Library/CloudStorage/GoogleDrive-gavin.sutter0@gmail.com/My Drive/2022/HSU/Fall 2022/Bioinformatics/Research_Project/working_dir/scripts/Outputs")
 
 #### Filter and Trim ####
 # Place filtered files in filtered/ subdirectory - creates directory for filtered reads
@@ -102,11 +103,17 @@ track <- cbind(out, sapply(dadaFs, getN), rowSums(seqtab.nochim))
 colnames(track) <- c("input", "filtered", "denoisedF", "nonchim")
 rownames(track) <- sample.names
 head(track)
+track
+#shows the range of the values that passed the nochim step - allows for removing allow read samples
+summary(track[,4])
+
+#removing samples with less than 1000 reads
+st <- seqtab[rowSums(seqtab.nochim) >= 1000,]
 
 #### Assigning Taxonomy ####
 #you can use multiple ways to assign taxonomy to a ASV table, in this case we use the Silva database that can be downloaded locally. 
 #make sure to change file pathway to where the silva taxonoy file is. 
-taxa <- assignTaxonomy(seqtab.nochim, "/Users/gav/Library/CloudStorage/GoogleDrive-gavin.sutter0@gmail.com/My Drive/2022/HSU/Fall 2022/Bioinformatics/Research_Project/working_dir/data/silva_nr99_v138.1_train_set.fa.gz", multithread=TRUE)
+taxa <- assignTaxonomy(st, "/Users/gav/Library/CloudStorage/GoogleDrive-gavin.sutter0@gmail.com/My Drive/2022/HSU/Fall 2022/Bioinformatics/Research_Project/working_dir/data/silva_nr99_v138.1_train_set.fa.gz", multithread=TRUE)
 
 #looking at taxonomic assignments
 taxa.print <- taxa # Removing sequence rownames for display only
@@ -120,13 +127,15 @@ saveRDS(seqtab.nochim, "/Users/gav/Library/CloudStorage/GoogleDrive-gavin.sutter
 #### Phyloseq ####
 #manual installation of phyloseq - needed because of version update error in current version of R
 #manually by downloading the tar file from the Phyloseq github, manually updating the location of the tar file download and unpacking with:
-#install.packages("/Users/gavinsutter/Downloads/joey711-phyloseq-9b211d9.tar.gz", repos = NULL, type="source")
+#install.packages("/Users/gav/Downloads/joey711-phyloseq-9b211d9.tar.gz", repos = NULL, type="source")
 
 library(phyloseq) #load phyloseq
 library(ggplot2) #load ggplot2
+library(vegan)
+library(dplyr)#load vegan
 
 #setting up a data table - this would look different if not running this tutorial data set. 
-samples.out <- rownames(seqtab.nochim)
+samples.out <- rownames(st)
 subject <- sapply(strsplit(samples.out, "D"), `[`, 1)
 organism = metadata$taxa_id
 spider = metadata$spider
@@ -136,31 +145,98 @@ rownames(samdf) <- samples.out
 samdf
 organism
 spider
+st
 #creating a phyloseq object out of dada2 data
 ps <- phyloseq(otu_table(seqtab.nochim, taxa_are_rows=FALSE), 
                sample_data(samdf), 
                tax_table(taxa))
 ps
+#ps <- prune_samples(sample_sums(ps) >= 1000, ps)
 
 #Example of plotting alpha diversity using the Shannon and Simpson Alpha Diversity metrics
-plot_richness(ps, x="Organism", measures=c("Shannon", "Simpson"), color = "Spider") #curious why there isn't any singletons in this data set, phyloseq shows a warning that this is highly suspicious given the data. 
+plot_richness(ps, x="Spider", measures=c("Shannon", "Simpson")) #curious why there isn't any singletons in this data set, phyloseq shows a warning that this is highly suspicious given the data. 
+plot_richness(ps, x="Organism", measures=c("Shannon", "Simpson"), color = "Spider")+ 
+              theme(panel.background = element_rect(
+                fill = "white",
+                colour = "black",
+                linewidth = 1, 
+                linetype = 1), 
+                panel.grid.major.y = element_line(color = "grey90",
+                                                  size = 0.5,
+                                                  linetype = 3), 
+                panel.grid.major.x = element_line(color = "grey90",
+                                                  size = 0.5,
+                                                  linetype = 3)) #curious why there isn't any singletons in this data set, phyloseq shows a warning that this is highly suspicious given the data. 
 ggsave("shannon_simpson_div_by_sample.tiff", path = "/Users/gav/Library/CloudStorage/GoogleDrive-gavin.sutter0@gmail.com/My Drive/2022/HSU/Fall 2022/Bioinformatics/Research_Project/working_dir/scripts/Outputs")
 
+#diversity by spider
+plot_richness(ps, x="Spider", measures=c("Shannon", "Simpson"), color = "Organism")+ 
+  theme(panel.background = element_rect(
+    fill = "white",
+    colour = "black",
+    linewidth = 1, 
+    linetype = 1), 
+    panel.grid.major.y = element_line(color = "grey90",
+                                      size = 0.5,
+                                      linetype = 3), 
+    panel.grid.major.x = element_line(color = "grey90",
+                                      size = 0.5,
+                                      linetype = 3))
+
+ps
+
+shannon_div_samples = estimate_richness(ps, split = TRUE, measures = "Shannon")
+metadata
+shannon_div = left_join(samdf,shannon_div_samples, by = c("Subject" == "experiment_accession"))
+shannon_div
+
+
 #Ordinate
-ps.prop <- transform_sample_counts(ps, function(otu) otu/sum(otu))
-ord.nmds.bray <- ordinate(ps.prop, method="NMDS", distance="bray")
+#ps.prop <- transform_sample_counts(ps, function(otu) otu/sum(otu)) - normalizing is causing all ordination values to be incredibly similar. 
+ord.nmds.bray <- ordinate(ps, method="NMDS", distance="bray")
+
+#ordination with vegan\
+# convert the otu_table() within a phyloseq object to a vegan compatible data object
+psotu2veg <- function(physeq) {
+  OTU <- otu_table(physeq)
+  if (taxa_are_rows(OTU)) {
+    OTU <- t(OTU)
+  }
+  return(as(OTU, "matrix"))
+}
+ps_vegan = psotu2veg(ps)
+ord = metaMDS(ps_vegan, distance = "bray")
+plot_ordination(ps, ord, color="Spider", title="Bray NMDS")+
+  theme_classic()
+ord
+adonis2(ord~samples, data = ord)
+
 
 #Plotting Ordination
-plot_ordination(ps.prop, ord.nmds.bray, color="Spider", title="Bray NMDS")
+plot_ordination(ps, ord.nmds.bray, color="Spider", title="Bray NMDS")+
+  theme_classic()
 ggsave("ord_by_spider.tiff", path = "/Users/gav/Library/CloudStorage/GoogleDrive-gavin.sutter0@gmail.com/My Drive/2022/HSU/Fall 2022/Bioinformatics/Research_Project/working_dir/scripts/Outputs")
+
+
+
+
+
+
 
 
 #plotting abundances in a bar chart by sample (filtered by the top 20 taxa in each sample)
 top20 <- names(sort(taxa_sums(ps), decreasing=TRUE))[1:20]
 ps.top20 <- transform_sample_counts(ps, function(OTU) OTU/sum(OTU))
 ps.top20 <- prune_taxa(top20, ps.top20)
-plot_bar(ps.top20, x="Organism", fill="Family") #+ facet_wrap(~When, scales="free_x")
+plot_bar(ps.top20, x="Organism", fill="Family") 
 ggsave("taxa_sample_family.tiff", path = "/Users/gav/Library/CloudStorage/GoogleDrive-gavin.sutter0@gmail.com/My Drive/2022/HSU/Fall 2022/Bioinformatics/Research_Project/working_dir/scripts/Outputs")
+
+ps.top20
+
+plot_bar(ps.top20, x="Spider", fill="Phylum") 
+
+ggplot(ps.top20, aes( x= "Spider", Fill = "Family"))+
+  geom_bar()
 
 #calculating shannon diversity for each sample in datatable - needs work
 #samples_shannon =  diversity("Genus", index = "shannon", exp = FALSE) 
