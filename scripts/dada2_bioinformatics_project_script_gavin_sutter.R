@@ -167,10 +167,10 @@ plot_richness(ps, x="Organism", measures=c("Shannon", "Simpson"), color = "Spide
                 panel.grid.major.x = element_line(color = "grey90",
                                                   size = 0.5,
                                                   linetype = 3)) #curious why there isn't any singletons in this data set, phyloseq shows a warning that this is highly suspicious given the data. 
-ggsave("shannon_simpson_div_by_sample.tiff", path = "/Users/gav/Library/CloudStorage/GoogleDrive-gavin.sutter0@gmail.com/My Drive/2022/HSU/Fall 2022/Bioinformatics/Research_Project/working_dir/scripts/Outputs")
+ggsave("shannon_simpson_div_by_sample.jpeg", path = "/Users/gav/Library/CloudStorage/GoogleDrive-gavin.sutter0@gmail.com/My Drive/2022/HSU/Fall 2022/Bioinformatics/Research_Project/working_dir/scripts/Outputs", dpi = 300)
 
 #diversity by spider
-plot_richness(ps, x="Spider", measures=c("Shannon", "Simpson"), color = "Organism")+ 
+plot_richness(ps, x="Spider", measures=c("Shannon", "Simpson"), color = "Spider")+ 
   theme(panel.background = element_rect(
     fill = "white",
     colour = "black",
@@ -183,13 +183,24 @@ plot_richness(ps, x="Spider", measures=c("Shannon", "Simpson"), color = "Organis
                                       size = 0.5,
                                       linetype = 3))
 
-ps
 
-shannon_div_samples = estimate_richness(ps, split = TRUE, measures = "Shannon")
-metadata
-shannon_div = left_join(samdf,shannon_div_samples, by = c("Subject" == "experiment_accession"))
+#shannon_div_samples = estimate_richness(ps, split = TRUE, measures = "Shannon")
+#shannon_div_samples
+#metadata
+#shannon_div = left_join(samdf,shannon_div_samples, by = c("Subject" == "experiment_accession"))
+
+shannon_div = read.csv("/Users/gav/Library/CloudStorage/GoogleDrive-gavin.sutter0@gmail.com/My Drive/2022/HSU/Fall 2022/Bioinformatics/Research_Project/working_dir/data/shannon_spider_data.csv", header = TRUE)
 shannon_div
 
+ggplot(data = shannon_div, aes(spider, shannon))+
+  geom_boxplot()+
+  xlab("")+
+  ylab("Shannon Index")+
+  theme(axis.text.x = element_text(size = 20),
+        text = element_text(size = 20),
+        panel.background = element_rect(fill = 'white', color = 'black', linetype = "solid", linewidth = 1))
+ggsave("shannon_diversity.jpeg", path = "/Users/gav/Library/CloudStorage/GoogleDrive-gavin.sutter0@gmail.com/My Drive/2022/HSU/Fall 2022/Bioinformatics/Research_Project/working_dir/scripts/Outputs", dpi = 300 )
+        
 
 #Ordinate
 #ps.prop <- transform_sample_counts(ps, function(otu) otu/sum(otu)) - normalizing is causing all ordination values to be incredibly similar. 
@@ -214,9 +225,12 @@ adonis2(ord~samples, data = ord)
 
 #Plotting Ordination
 plot_ordination(ps, ord.nmds.bray, color="Spider", title="Bray NMDS")+
-  theme_classic()
-ggsave("ord_by_spider.tiff", path = "/Users/gav/Library/CloudStorage/GoogleDrive-gavin.sutter0@gmail.com/My Drive/2022/HSU/Fall 2022/Bioinformatics/Research_Project/working_dir/scripts/Outputs")
-
+  theme(axis.text.x = element_text(size = 20),
+        text = element_text(size = 20),
+        panel.background = element_rect(fill = 'white', color = 'white'), 
+        axis.line.x = element_line(color = 'black'), 
+        axis.line.y = element_line(color = 'black'))
+ggsave("ord_by_spider.jpeg", path = "/Users/gav/Library/CloudStorage/GoogleDrive-gavin.sutter0@gmail.com/My Drive/2022/HSU/Fall 2022/Bioinformatics/Research_Project/working_dir/scripts/Outputs", dpi = 900)
 
 
 
@@ -228,8 +242,10 @@ ggsave("ord_by_spider.tiff", path = "/Users/gav/Library/CloudStorage/GoogleDrive
 top20 <- names(sort(taxa_sums(ps), decreasing=TRUE))[1:20]
 ps.top20 <- transform_sample_counts(ps, function(OTU) OTU/sum(OTU))
 ps.top20 <- prune_taxa(top20, ps.top20)
-plot_bar(ps.top20, x="Organism", fill="Family") 
-ggsave("taxa_sample_family.tiff", path = "/Users/gav/Library/CloudStorage/GoogleDrive-gavin.sutter0@gmail.com/My Drive/2022/HSU/Fall 2022/Bioinformatics/Research_Project/working_dir/scripts/Outputs")
+plot_bar(ps.top20, x="Organism", fill="Phylum")+
+  theme(panel.background = element_rect(fill = 'white', color = 'black', linetype = "solid", linewidth = 1))
+ggsave("taxa_sample_family.jpeg", path = "/Users/gav/Library/CloudStorage/GoogleDrive-gavin.sutter0@gmail.com/My Drive/2022/HSU/Fall 2022/Bioinformatics/Research_Project/working_dir/scripts/Outputs", dpi = 300)
+ggsave("taxa_sample_family_legend.jpeg", path = "/Users/gav/Library/CloudStorage/GoogleDrive-gavin.sutter0@gmail.com/My Drive/2022/HSU/Fall 2022/Bioinformatics/Research_Project/working_dir/scripts/Outputs", dpi = 1200)
 
 ps.top20
 
